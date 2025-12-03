@@ -1,0 +1,142 @@
+name: 'Test MCP Server Error (Issue #338)'
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to test'
+        required: true
+        type: number
+
+concurrency:
+  group: 'test-mcp-error-${{ github.event.pull_request.number || inputs.pr_number }}'
+  cancel-in-progress: true
+
+jobs:
+  reproduce-error:
+    runs-on: 'ubuntu-latest'
+    timeout-minutes: 10
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+      issues: 'write'
+      pull-requests: 'write'
+    steps:
+      - name: 'Checkout repository'
+        uses: 'actions/checkout@v4'
+
+      - name: 'Run Gemini PR Review (Reproduce Issue #338)'
+        uses: './'  # Use local action to test latest version
+        id: 'gemini_test'
+        env:
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+          PULL_REQUEST_NUMBER: '${{ github.event.pull_request.number || inputs.pr_number }}'
+          REPOSITORY: '${{ github.repository }}'
+        with:
+          # INTENTIONAL BUG: Providing BOTH auth methods like in issue #338
+          #
+          # Simple reproduction (only needs GEMINI_API_KEY):
+          gemini_api_key: '${{ secrets.GEMINI_API_KEY }}'
+          #
+          # Full reproduction (uncomment if you have GOOGLE_API_KEY):
+          # google_api_key: '${{ secrets.GOOGLE_API_KEY }}'
+
+          # Enable debug to see the error
+          gemini_debug: 'true'
+
+          # Use the exact same model as the issue
+          gemini_model: 'gemini-2.5-flash'
+
+          # Use the same CLI version as the issue
+          gemini_cli_version: '0.6.1'
+
+          # Enable artifact upload to capture error logs
+          upload_artifacts: 'true'
+
+          workflow_name: 'test-mcp-error'
+
+          # Same settings as the issue (with MCP server)
+          settings: |-
+            {
+              "model": {
+                "maxSessionTurns": 25
+              },
+              "telemetry": {
+                "enabled": false,
+                "target": "gcp"
+              },
+              "mcpServers": {
+                "github": {
+                  "command": "docker",
+                  "args": [
+                    "run",
+                    "-i",
+                    "--rm",
+                    "-e",
+                    "GITHUB_PERSONAL_ACCESS_TOKEN",
+                    "ghcr.io/github/github-mcp-server"
+                  ],
+                  "includeTools": [
+                    "add_comment_to_pending_review",
+                    "create_pending_pull_request_review",
+                    "get_pull_request_diff",
+                    "get_pull_request_files",
+                    "get_pull_request",
+                    "submit_pending_pull_request_review"
+                  ],
+                  "env": {
+                    "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+                  }
+                }
+              },
+              "tools": {
+                "core": [
+                  "run_shell_command(cat)",
+                  "run_shell_command(echo)",
+                  "run_shell_command(grep)",
+                  "run_shell_command(head)",
+                  "run_shell_command(tail)"
+                ]
+              }
+            }
+
+          prompt: |-
+            ## Role
+            You are a code review agent testing Issue #338 - MCP Server Error.
+
+            ## Task
+            Review this pull request and post comments using the GitHub MCP server tools.
+
+            ## Instructions
+            1. Use mcp__github__get_pull_request to get PR details
+            2. Use mcp__github__get_pull_request_diff to get the diff
+            3. Use mcp__github__create_pending_pull_request_review to create a review
+            4. Add at least one comment using mcp__github__add_comment_to_pending_review
+            5. Submit the review using mcp__github__submit_pending_pull_request_review
+
+            Keep your review simple - just add a comment on the first changed line.
+
+      - name: 'Check for error artifacts'
+        if: always()
+        run: |
+          echo "Checking for error log files..."
+          if [ -d "gemini-artifacts" ]; then
+            echo "=== Artifacts found ==="
+            ls -la gemini-artifacts/
+
+            echo ""
+            echo "=== STDERR Log ==="
+            cat gemini-artifacts/stderr.log || echo "No stderr.log"
+
+            echo ""
+            echo "=== STDOUT Log ==="
+            cat gemini-artifacts/stdout.log || echo "No stdout.log"
+          else
+            echo "No artifacts directory found"
+          fi
+
+          echo ""
+          echo "Checking for error JSON files in /tmp..."
+          ls -la /tmp/gemini-client-error-* 2>/dev/null || echo "No error JSON files found"
