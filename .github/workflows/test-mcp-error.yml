@@ -109,12 +109,18 @@ jobs:
             ## Task
             Review this pull request and post comments using the GitHub MCP server tools.
 
+            ## Context
+            - Repository: ${REPOSITORY}
+            - Pull Request Number: ${PULL_REQUEST_NUMBER}
+
             ## Instructions
-            1. Use mcp__github__get_pull_request to get PR details
+            1. Use mcp__github__get_pull_request with owner, repo, and pullNumber from the context above
             2. Use mcp__github__get_pull_request_diff to get the diff
             3. Use mcp__github__create_pending_pull_request_review to create a review
             4. Add at least one comment using mcp__github__add_comment_to_pending_review
             5. Submit the review using mcp__github__submit_pending_pull_request_review
+
+            IMPORTANT: Use the pullNumber from the environment (${PULL_REQUEST_NUMBER}), not 338!
 
             Keep your review simple - just add a comment on the first changed line.
 
