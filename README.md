@@ -327,3 +327,4 @@ started.
 [GEMINI.md]: https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/configuration.md#context-files-hierarchical-instructional-context
 // Test change for Issue #338 reproduction - Wed Dec  3 01:00:12 IST 2025
 // Trigger workflow - Wed Dec  3 11:13:57 IST 2025
+// Re-trigger workflow with fix - Wed Dec  3 20:01:19 IST 2025
