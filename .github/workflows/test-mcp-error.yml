@@ -49,8 +49,8 @@ jobs:
           # Use the exact same model as the issue
           gemini_model: 'gemini-2.5-flash'
 
-          # Use the same CLI version as the issue
-          gemini_cli_version: '0.6.1'
+          # Use latest CLI version (0.6.1 had MCP tool discovery issues)
+          gemini_cli_version: 'latest'
 
           # Enable artifact upload to capture error logs
           upload_artifacts: 'true'
@@ -76,14 +76,12 @@ jobs:
                     "--rm",
                     "-e",
                     "GITHUB_PERSONAL_ACCESS_TOKEN",
-                    "ghcr.io/github/github-mcp-server"
+                    "ghcr.io/github/github-mcp-server:v0.18.0"
                   ],
                   "includeTools": [
                     "add_comment_to_pending_review",
                     "create_pending_pull_request_review",
-                    "get_pull_request_diff",
-                    "get_pull_request_files",
-                    "get_pull_request",
+                    "pull_request_read",
                     "submit_pending_pull_request_review"
                   ],
                   "env": {
@@ -102,27 +100,7 @@ jobs:
               }
             }
 
-          prompt: |-
-            ## Role
-            You are a code review agent testing Issue #338 - MCP Server Error.
-
-            ## Task
-            Review this pull request and post comments using the GitHub MCP server tools.
-
-            ## Context
-            - Repository: ${REPOSITORY}
-            - Pull Request Number: ${PULL_REQUEST_NUMBER}
-
-            ## Instructions
-            1. Use mcp__github__get_pull_request with owner, repo, and pullNumber from the context above
-            2. Use mcp__github__get_pull_request_diff to get the diff
-            3. Use mcp__github__create_pending_pull_request_review to create a review
-            4. Add at least one comment using mcp__github__add_comment_to_pending_review
-            5. Submit the review using mcp__github__submit_pending_pull_request_review
-
-            IMPORTANT: Use the pullNumber from the environment (${PULL_REQUEST_NUMBER}), not 338!
-
-            Keep your review simple - just add a comment on the first changed line.
+          prompt: '/gemini-review'
 
       - name: 'Check for error artifacts'
         if: always()
