@@ -330,3 +330,4 @@ started.
 // Re-trigger workflow with fix - Wed Dec  3 20:01:19 IST 2025
 // Test with latest CLI - Wed Dec  3 20:11:06 IST 2025
 // Force new run with updated workflow - Wed Dec  3 20:21:03 IST 2025
+// Test 1: CLI 0.6.1 + both keys - Thu Dec  4 12:13:20 IST 2025
