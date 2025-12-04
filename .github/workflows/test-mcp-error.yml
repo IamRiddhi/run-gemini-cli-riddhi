@@ -35,13 +35,9 @@ jobs:
           PULL_REQUEST_NUMBER: '${{ github.event.pull_request.number || inputs.pr_number }}'
           REPOSITORY: '${{ github.repository }}'
         with:
-          # INTENTIONAL BUG: Providing BOTH auth methods like in issue #338
-          #
-          # Simple reproduction (only needs GEMINI_API_KEY):
+          # EXACT REPRODUCTION: Use BOTH auth methods like in issue #338
           gemini_api_key: '${{ secrets.GEMINI_API_KEY }}'
-          #
-          # Full reproduction (uncomment if you have GOOGLE_API_KEY):
-          # google_api_key: '${{ secrets.GOOGLE_API_KEY }}'
+          google_api_key: '${{ secrets.GOOGLE_API_KEY }}'
 
           # Enable debug to see the error
           gemini_debug: 'true'
@@ -49,8 +45,10 @@ jobs:
           # Use the exact same model as the issue
           gemini_model: 'gemini-2.5-flash'
 
-          # Use latest CLI version (0.6.1 had MCP tool discovery issues)
-          gemini_cli_version: 'latest'
+          # Test 1: Use same version as Issue #338
+          gemini_cli_version: '0.6.1'
+
+          # Test 2: After Test 1, change to 'latest' to verify if bug is fixed
 
           # Enable artifact upload to capture error logs
           upload_artifacts: 'true'
