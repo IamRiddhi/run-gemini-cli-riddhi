@@ -45,10 +45,10 @@ jobs:
           # Use the exact same model as the issue
           gemini_model: 'gemini-2.5-flash'
 
-          # Test 1: Use same version as Issue #338
-          gemini_cli_version: '0.6.1'
+          # Test 2: Use latest version to verify if bug is fixed
+          gemini_cli_version: 'latest'
 
-          # Test 2: After Test 1, change to 'latest' to verify if bug is fixed
+          # Test 1 (completed): Used 0.6.1 - NO Issue #338 found
 
           # Enable artifact upload to capture error logs
           upload_artifacts: 'true'
