@@ -24,7 +24,7 @@ jobs:
           gh repo create "$REPO_NAME" --private --add-readme
           echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.PAT }}
 
       # Step 3: Create a test issue in the temporary repository
       # Save the issue number for use in later steps
@@ -45,14 +45,14 @@ jobs:
           echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
           echo "Created issue #$ISSUE_NUMBER in ${{ steps.create_repo.outputs.repo_name }}"
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.PAT }}
 
       # Step 4: Run the action with Gemini to add a comment via GitHub MCP server
       # The action will use the MCP server to interact with GitHub
       - name: 'Run Gemini CLI with GitHub MCP server'
         uses: ./
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.PAT }}
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           prompt: |
@@ -103,7 +103,7 @@ jobs:
             exit 1
           fi
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.PAT }}
 
       # Step 6: Cleanup - delete the temporary repository
       # This runs even if previous steps fail to ensure no orphaned repos
@@ -115,4 +115,4 @@ jobs:
             gh repo delete "${{ steps.create_repo.outputs.repo_name }}" --yes || echo "Failed to delete repo, may need manual cleanup"
           fi
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.PAT }}
