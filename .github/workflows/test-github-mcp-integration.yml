@@ -1,0 +1,118 @@
+name: Test GitHub MCP Integration
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-mcp-integration:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the action code from the current PR/branch
+      - name: 'Checkout repository'
+        uses: 'actions/checkout@v4'
+
+      # Step 2: Create a temporary private repository for testing
+      # The repo name includes a timestamp to ensure uniqueness
+      - name: 'Create temporary test repository'
+        id: create_repo
+        run: |
+          REPO_NAME="mcp-test-$(date +%s)"
+          gh repo create "$REPO_NAME" --private --add-readme
+          echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # Step 3: Create a test issue in the temporary repository
+      # Save the issue number for use in later steps
+      - name: 'Create test issue'
+        id: create_issue
+        run: |
+          ISSUE_URL=$(gh issue create \
+            --repo "${{ steps.create_repo.outputs.repo_name }}" \
+            --title "MCP Integration Test Issue" \
+            --body "This issue is created by the MCP integration test to verify that Gemini can comment via the GitHub MCP server.")
+          ISSUE_NUMBER=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
+
+          if [ -z "$ISSUE_NUMBER" ]; then
+            echo "Failed to create issue or extract issue number"
+            exit 1
+          fi
+
+          echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+          echo "Created issue #$ISSUE_NUMBER in ${{ steps.create_repo.outputs.repo_name }}"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # Step 4: Run the action with Gemini to add a comment via GitHub MCP server
+      # The action will use the MCP server to interact with GitHub
+      - name: 'Run Gemini CLI with GitHub MCP server'
+        uses: ./
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          prompt: |
+            Add a comment to issue #${{ steps.create_issue.outputs.issue_number }} in repository ${{ github.repository_owner }}/${{ steps.create_repo.outputs.repo_name }} saying:
+            "Hello from Gemini CLI! This comment was posted via the GitHub MCP server to verify MCP integration is working correctly."
+          settings: |
+            {
+              "mcpServers": {
+                "github": {
+                  "command": "docker",
+                  "args": [
+                    "run",
+                    "-i",
+                    "--rm",
+                    "-e",
+                    "GITHUB_PERSONAL_ACCESS_TOKEN",
+                    "ghcr.io/github/github-mcp-server:v0.18.0"
+                  ],
+                  "env": {
+                    "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+                  }
+                }
+              }
+            }
+
+      # Step 5: Verify that the comment was successfully posted via MCP
+      # Use gh CLI to independently check if the comment exists
+      - name: 'Verify comment was posted'
+        run: |
+          echo "Waiting 10 seconds for comment to be processed..."
+          sleep 10
+
+          echo "Fetching comments from issue #${{ steps.create_issue.outputs.issue_number }}..."
+          COMMENTS=$(gh issue view ${{ steps.create_issue.outputs.issue_number }} \
+            --repo "${{ steps.create_repo.outputs.repo_name }}" \
+            --json comments \
+            --jq '.comments[].body')
+
+          echo "Comments found:"
+          echo "$COMMENTS"
+
+          if echo "$COMMENTS" | grep -q "Hello from Gemini CLI"; then
+            echo "SUCCESS: Comment was posted via MCP!"
+            exit 0
+          else
+            echo "FAILURE: Expected comment not found!"
+            echo "Test failed - MCP integration did not work as expected"
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # Step 6: Cleanup - delete the temporary repository
+      # This runs even if previous steps fail to ensure no orphaned repos
+      - name: 'Delete temporary test repository'
+        if: always()
+        run: |
+          if [ -n "${{ steps.create_repo.outputs.repo_name }}" ]; then
+            echo "Deleting temporary repository ${{ steps.create_repo.outputs.repo_name }}..."
+            gh repo delete "${{ steps.create_repo.outputs.repo_name }}" --yes || echo "Failed to delete repo, may need manual cleanup"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
