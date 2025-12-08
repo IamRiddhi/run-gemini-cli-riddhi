@@ -21,8 +21,16 @@ jobs:
         id: create_repo
         run: |
           REPO_NAME="mcp-test-$(date +%s)"
-          gh repo create "$REPO_NAME" --private --add-readme
-          echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
+          echo "Creating temporary repository: $REPO_NAME"
+
+          if REPO_URL=$(gh repo create "$REPO_NAME" --private --add-readme 2>&1); then
+            echo "✓ Successfully created repository: $REPO_URL"
+            echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
+          else
+            echo "✗ Failed to create repository"
+            echo "Error: $REPO_URL"
+            exit 1
+          fi
         env:
           GH_TOKEN: ${{ secrets.PAT }}
 
@@ -31,19 +39,28 @@ jobs:
       - name: 'Create test issue'
         id: create_issue
         run: |
-          ISSUE_URL=$(gh issue create \
+          echo "Creating test issue in ${{ github.repository_owner }}/${{ steps.create_repo.outputs.repo_name }}"
+
+          if ISSUE_URL=$(gh issue create \
             --repo "${{ github.repository_owner }}/${{ steps.create_repo.outputs.repo_name }}" \
             --title "MCP Integration Test Issue" \
-            --body "This issue is created by the MCP integration test to verify that Gemini can comment via the GitHub MCP server.")
-          ISSUE_NUMBER=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
+            --body "This issue is created by the MCP integration test to verify that Gemini can comment via the GitHub MCP server." 2>&1); then
 
-          if [ -z "$ISSUE_NUMBER" ]; then
-            echo "Failed to create issue or extract issue number"
+            ISSUE_NUMBER=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
+
+            if [ -z "$ISSUE_NUMBER" ]; then
+              echo "✗ Failed to extract issue number from URL: $ISSUE_URL"
+              exit 1
+            fi
+
+            echo "✓ Successfully created issue #$ISSUE_NUMBER"
+            echo "Issue URL: $ISSUE_URL"
+            echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+          else
+            echo "✗ Failed to create issue"
+            echo "Error: $ISSUE_URL"
             exit 1
           fi
-
-          echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
-          echo "Created issue #$ISSUE_NUMBER in ${{ steps.create_repo.outputs.repo_name }}"
         env:
           GH_TOKEN: ${{ secrets.PAT }}
 
@@ -86,20 +103,26 @@ jobs:
           sleep 10
 
           echo "Fetching comments from issue #${{ steps.create_issue.outputs.issue_number }}..."
-          COMMENTS=$(gh issue view ${{ steps.create_issue.outputs.issue_number }} \
+          if COMMENTS=$(gh issue view ${{ steps.create_issue.outputs.issue_number }} \
             --repo "${{ github.repository_owner }}/${{ steps.create_repo.outputs.repo_name }}" \
             --json comments \
-            --jq '.comments[].body')
+            --jq '.comments[].body' 2>&1); then
 
-          echo "Comments found:"
-          echo "$COMMENTS"
+            echo "Comments found:"
+            echo "$COMMENTS"
 
-          if echo "$COMMENTS" | grep -q "Hello from Gemini CLI"; then
-            echo "SUCCESS: Comment was posted via MCP!"
-            exit 0
+            if echo "$COMMENTS" | grep -q "Hello from Gemini CLI"; then
+              echo "✓ SUCCESS: Comment was posted via MCP!"
+              echo "✓ MCP integration test PASSED"
+              exit 0
+            else
+              echo "✗ FAILURE: Expected comment not found!"
+              echo "✗ Test failed - MCP integration did not work as expected"
+              exit 1
+            fi
           else
-            echo "FAILURE: Expected comment not found!"
-            echo "Test failed - MCP integration did not work as expected"
+            echo "✗ Failed to fetch comments from issue"
+            echo "Error: $COMMENTS"
             exit 1
           fi
         env:
@@ -110,9 +133,20 @@ jobs:
       - name: 'Delete temporary test repository'
         if: always()
         run: |
-          if [ -n "${{ steps.create_repo.outputs.repo_name }}" ]; then
-            echo "Deleting temporary repository ${{ steps.create_repo.outputs.repo_name }}..."
-            gh repo delete "${{ github.repository_owner }}/${{ steps.create_repo.outputs.repo_name }}" --yes || echo "Failed to delete repo, may need manual cleanup"
+          if [ -z "${{ steps.create_repo.outputs.repo_name }}" ]; then
+            echo "⚠ No repository name found, skipping cleanup"
+            exit 0
+          fi
+
+          REPO_FULL_NAME="${{ github.repository_owner }}/${{ steps.create_repo.outputs.repo_name }}"
+          echo "Deleting temporary repository: $REPO_FULL_NAME"
+
+          if gh repo delete "$REPO_FULL_NAME" --yes 2>&1; then
+            echo "✓ Successfully deleted repository: $REPO_FULL_NAME"
+          else
+            echo "✗ Failed to delete repository: $REPO_FULL_NAME"
+            echo "⚠ Manual cleanup may be required"
+            exit 1
           fi
         env:
           GH_TOKEN: ${{ secrets.PAT }}
