@@ -41,18 +41,17 @@ async function waitForReviewComment(prNumber: number): Promise<boolean> {
       for (const comment of comments) {
         const bodyLower = comment.body.toLowerCase();
 
-        // Look for gemini-specific markers
-        const isGeminiComment =
-          bodyLower.includes('gemini') ||
-          bodyLower.includes('code assist') ||
-          comment.user?.toLowerCase().includes('gemini');
+        // Look for github-actions bot posting review summary
+        const isGeminiReview =
+          comment.user === 'github-actions' &&
+          (bodyLower.includes('review summary') || bodyLower.includes('📋'));
 
-        if (isGeminiComment) {
-          console.log(`  ✅ Found gemini comment by: ${comment.user}`);
+        if (isGeminiReview) {
+          console.log(`  ✅ Found gemini review by: ${comment.user}`);
           console.log(`  Comment preview: ${comment.body.substring(0, 100)}...`);
           return true;
         } else {
-          console.log(`  ⏭️  Skipping comment by: ${comment.user} (not gemini)`);
+          console.log(`  ⏭️  Skipping comment by: ${comment.user} (not gemini review)`);
         }
       }
     }
