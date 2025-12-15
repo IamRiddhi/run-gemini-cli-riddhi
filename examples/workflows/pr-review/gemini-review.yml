@@ -70,36 +70,36 @@ jobs:
           upload_artifacts: '${{ vars.UPLOAD_ARTIFACTS }}'
           workflow_name: 'gemini-review'
           settings: |-
-            {
-              "model": {
-                "maxSessionTurns": 25
-              },
-              "telemetry": {
-                "enabled": true,
-                "target": "local",
-                "outfile": ".gemini/telemetry.log"
-              },
-              "mcpServers": {
-                "github": {
-                  "command": "docker",
-                  "args": [
-                    "run",
-                    "-i",
-                    "--rm",
-                    "-e",
-                    "GITHUB_PERSONAL_ACCESS_TOKEN",
-                    "ghcr.io/github/github-mcp-server:v0.18.0"
-                  ],
-                  "includeTools": [
-                    "add_comment_to_pending_review",
-                    "create_pending_pull_request_review",
-                    "pull_request_read",
-                    "submit_pending_pull_request_review"
-                  ],
-                  "env": {
-                    "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
-                  }
-                }
-              },
-            }
+            { 
+               "model": {
+                 "maxSessionTurns": 25
+               },
+               "telemetry": {
+                 "enabled": true,
+                 "target": "local",
+                 "outfile": ".gemini/telemetry.log"
+               },
+               "mcpServers": {
+                 "github": {
+                   "command": "docker",
+                   "args": [
+                     "run",
+                     "-i",
+                     "--rm",
+                     "-e",
+                     "GITHUB_PERSONAL_ACCESS_TOKEN",
+                     "ghcr.io/github/github-mcp-server:v0.18.0"
+                   ],
+                   "includeTools": [
+                     "add_comment_to_pending_review",
+                     "create_pending_pull_request_review",
+                     "pull_request_read",
+                     "submit_pending_pull_request_review"
+                   ],
+                   "env": {
+                     "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+                   }
+                 }
+               }
+             }
           prompt: '/gemini-review'
