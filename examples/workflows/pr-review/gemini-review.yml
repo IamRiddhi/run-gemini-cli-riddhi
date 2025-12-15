@@ -101,14 +101,5 @@ jobs:
                   }
                 }
               },
-              "tools": {
-                "core": [
-                  "run_shell_command(cat)",
-                  "run_shell_command(echo)",
-                  "run_shell_command(grep)",
-                  "run_shell_command(head)",
-                  "run_shell_command(tail)"
-                ]
-              }
             }
           prompt: '/gemini-review'
