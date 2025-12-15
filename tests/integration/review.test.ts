@@ -38,11 +38,9 @@ async function waitForReviewComment(prNumber: number): Promise<boolean> {
     console.log(`  [${Math.floor((Date.now() - startTime) / 1000)}s] Found ${comments.length} comment(s)`);
 
     if (comments.length > 0) {
-      // Check all comments (not just latest, in case multiple bots comment)
       for (const comment of comments) {
         const bodyLower = comment.body.toLowerCase();
 
-        // Look for github-actions bot posting review summary
         const isGeminiReview =
           comment.user === 'github-actions' &&
           (bodyLower.includes('review summary') || bodyLower.includes('📋'));
@@ -72,48 +70,31 @@ describe('gemini-review integration test', () => {
     try {
       console.log('\n=== Creating test PR ===');
 
-      // Step 1: Get main's latest commit SHA
       console.log('Getting main branch SHA...');
       const mainSha = await getLatestCommitSha('main');
       console.log(`  Main SHA: ${mainSha}`);
 
-      // Step 2: Create test branch
       console.log(`Creating branch: ${branchName}...`);
       await createBranch(branchName, mainSha);
       console.log('   Branch created');
 
-      // Step 3: Add multiply function to calculator.js
       console.log('Adding multiply function to calculator.js...');
 
-      // Read existing calculator.js from main branch
-      const existingCode = await getFileContent('src/calculator.js', 'main');
+      const existingCode = await getFileContent('src/calculator.js', branchName);
 
-      // Check if multiply function already exists
       if (existingCode.includes('function multiply')) {
         console.log('  Multiply function already exists, skipping...');
       } else {
-        // Append multiply function before module.exports
-        const multiplyFunction = `/**
+        const multiplyFunction = `
+/**
  * Multiply two numbers
  */
 function multiply(a, b) {
   return a * b;
 }
-
 `;
 
-        // Find module.exports and insert multiply function before it
-        let updatedCode = existingCode.replace(
-          /module\.exports\s*=/,
-          `${multiplyFunction}module.exports =`
-        );
-
-        // Add multiply to the exports object
-        // Find the closing }; and add multiply before it
-        updatedCode = updatedCode.replace(
-          /(\s*)(};)/,
-          '$1  multiply,\n$1$2'
-        );
+        const updatedCode = existingCode + multiplyFunction;
 
         await createOrUpdateFile(
           'src/calculator.js',
@@ -124,7 +105,6 @@ function multiply(a, b) {
         console.log('  Multiply function added');
       }
 
-      // Step 4: Create PR
       console.log('Creating pull request...');
       const pr = await createPullRequest(
         branchName,
@@ -136,16 +116,13 @@ function multiply(a, b) {
       console.log(`  PR created: #${pr.number}`);
       console.log(`  URL: ${pr.url}`);
 
-      // Step 5: Wait for gemini-review comment
       console.log('\n=== Waiting for gemini-review ===');
       const commentFound = await waitForReviewComment(pr.number);
 
-      // Step 6: Verify comment was posted
       expect(commentFound).toBe(true);
 
       console.log('\n=== Test passed! ===');
     } finally {
-      // Cleanup: Always run, even if test fails
       console.log('\n=== Cleanup ===');
 
       if (prNumber) {

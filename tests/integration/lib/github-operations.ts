@@ -189,7 +189,6 @@ export async function getFileContent(
     throw new Error(`Path ${path} is not a file`);
   }
 
-  // Decode base64 content
   return Buffer.from(response.data.content, 'base64').toString('utf-8');
 }
 
@@ -202,7 +201,6 @@ export async function createOrUpdateFile(
   message: string,
   branch: string
 ): Promise<void> {
-  // Try to get existing file SHA (needed for updates)
   let sha: string | undefined;
   try {
     const response = await octokit.rest.repos.getContent({
@@ -216,7 +214,6 @@ export async function createOrUpdateFile(
       sha = response.data.sha;
     }
   } catch (error: any) {
-    // File doesn't exist yet (404) - that's fine, we're creating it
     if (error.status !== 404) {
       throw error;
     }
@@ -229,7 +226,7 @@ export async function createOrUpdateFile(
     message,
     content: Buffer.from(content).toString('base64'),
     branch,
-    ...(sha && { sha }), // Include SHA only if file exists
+    ...(sha && { sha }),
   });
 }
 
@@ -245,7 +242,6 @@ export async function listIssues(
     state,
   });
 
-  // Filter out pull requests (GitHub API returns PRs as issues)
   const issues = response.data.filter((item) => !item.pull_request);
 
   return issues.map((issue) => ({
