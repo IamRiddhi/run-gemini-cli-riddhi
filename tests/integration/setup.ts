@@ -6,7 +6,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { createOrUpdateFile } from './lib/github-operations.js';
-import { WORKFLOWS_TO_COPY } from './config/test-config.js';
+import { WORKFLOWS_TO_COPY, COMMANDS_TO_COPY } from './config/test-config.js';
 
 /**
  * Copy workflow files to test repository
@@ -28,6 +28,26 @@ async function copyWorkflowFiles(): Promise<void> {
   console.log(`  Copied ${WORKFLOWS_TO_COPY.length} workflow file(s)`);
 }
 
+
+/**
+ * Copy command (TOML) files to test repository
+ */
+async function copyCommandFiles(): Promise<void> {
+  console.log('Copying command files to test repository...');
+
+  for (const command of COMMANDS_TO_COPY) {
+    console.log(`  Copying ${command.source} → ${command.dest}`);
+    const content = readFileSync(join(process.cwd(), command.source), 'utf-8');
+    await createOrUpdateFile(
+      command.dest,
+      content,
+      `Setup: Copy ${command.source}`,
+      'main'
+    );
+  }
+
+  console.log(`  Copied ${COMMANDS_TO_COPY.length} command file(s)`);
+}
 
 /**
  * Copy mock code files to test repository
@@ -58,6 +78,7 @@ async function setup(): Promise<void> {
 
   try {
     await copyWorkflowFiles();
+    await copyCommandFiles();
     await copyMockCode();
 
     console.log('\n Setup completed successfully!');

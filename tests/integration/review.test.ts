@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import {
   getLatestCommitSha,
   createBranch,
+  getFileContent,
   createOrUpdateFile,
   createPullRequest,
   listComments,
@@ -83,55 +84,45 @@ describe('gemini-review integration test', () => {
 
       // Step 3: Add multiply function to calculator.js
       console.log('Adding multiply function to calculator.js...');
-      const updatedCalculatorCode = `/**
- * Simple calculator module for testing gemini-review
- */
 
-/**
- * Add two numbers
- */
-function add(a, b) {
-  return a + b;
-}
+      // Read existing calculator.js from main branch
+      const existingCode = await getFileContent('src/calculator.js', 'main');
 
-/**
- * Subtract two numbers
- */
-function subtract(a, b) {
-  return a - b;
-}
-
-/**
+      // Check if multiply function already exists
+      if (existingCode.includes('function multiply')) {
+        console.log('  Multiply function already exists, skipping...');
+      } else {
+        // Append multiply function before module.exports
+        const multiplyFunction = `/**
  * Multiply two numbers
  */
 function multiply(a, b) {
   return a * b;
 }
 
-/**
- * Divide two numbers
- */
-function divide(a, b) {
-  if (b === 0) {
-    throw new Error('Cannot divide by zero');
-  }
-  return a / b;
-}
-
-module.exports = {
-  add,
-  subtract,
-  multiply,
-  divide,
-};
 `;
-      await createOrUpdateFile(
-        'src/calculator.js',
-        updatedCalculatorCode,
-        'Add multiply function to calculator',
-        branchName
-      );
-      console.log('  Multiply function added');
+
+        // Find module.exports and insert multiply function before it
+        let updatedCode = existingCode.replace(
+          /module\.exports\s*=/,
+          `${multiplyFunction}module.exports =`
+        );
+
+        // Add multiply to the exports object
+        // Find the closing }; and add multiply before it
+        updatedCode = updatedCode.replace(
+          /(\s*)(};)/,
+          '$1  multiply,\n$1$2'
+        );
+
+        await createOrUpdateFile(
+          'src/calculator.js',
+          updatedCode,
+          'Add multiply function to calculator',
+          branchName
+        );
+        console.log('  Multiply function added');
+      }
 
       // Step 4: Create PR
       console.log('Creating pull request...');
@@ -139,7 +130,7 @@ module.exports = {
         branchName,
         'main',
         `[TEST] Review integration test - ${Date.now()}`,
-        'This is an automated test PR for gemini-review integration testing.'
+        'This is an automated test PR for gemini-review integration testing.\n\nThis PR adds a multiply function to the calculator module.'
       );
       prNumber = pr.number;
       console.log(`  PR created: #${pr.number}`);

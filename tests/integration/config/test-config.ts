@@ -115,3 +115,25 @@ export const WORKFLOWS_TO_COPY = [
     dest: '.github/workflows/gemini-triage.yml',
   },
 ];
+
+/**
+ * Command (TOML) files to copy to test repository
+ */
+export const COMMANDS_TO_COPY = [
+  {
+    source: 'examples/workflows/pr-review/gemini-review.toml',
+    dest: '.github/commands/gemini-review.toml',
+  },
+  {
+    source: 'examples/workflows/gemini-assistant/gemini-invoke.toml',
+    dest: '.github/commands/gemini-invoke.toml',
+  },
+  {
+    source: 'examples/workflows/issue-triage/gemini-triage.toml',
+    dest: '.github/commands/gemini-triage.toml',
+  },
+  {
+    source: 'examples/workflows/issue-triage/gemini-scheduled-triage.toml',
+    dest: '.github/commands/gemini-scheduled-triage.toml',
+  },
+];

@@ -172,6 +172,28 @@ export async function createBranch(
 }
 
 /**
+ * Get file content from a branch
+ */
+export async function getFileContent(
+  path: string,
+  branch: string = 'main'
+): Promise<string> {
+  const response = await octokit.rest.repos.getContent({
+    owner: TEST_REPO_OWNER,
+    repo: TEST_REPO_NAME,
+    path,
+    ref: branch,
+  });
+
+  if (Array.isArray(response.data) || response.data.type !== 'file') {
+    throw new Error(`Path ${path} is not a file`);
+  }
+
+  // Decode base64 content
+  return Buffer.from(response.data.content, 'base64').toString('utf-8');
+}
+
+/**
  * Create or update a file in the repository
  */
 export async function createOrUpdateFile(
@@ -280,7 +302,7 @@ export async function listWorkflowFiles(): Promise<string[]> {
  * List all slash command files
  */
 export async function listCommandFiles(): Promise<string[]> {
-  return listFiles('.gemini/commands');
+  return listFiles('.github/commands');
 }
 
 /**
