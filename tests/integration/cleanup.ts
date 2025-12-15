@@ -117,6 +117,25 @@ async function deleteCommandFiles(): Promise<void> {
 }
 
 /**
+ * Delete mock code files
+ */
+async function deleteMockCodeFiles(): Promise<void> {
+  console.log('Deleting mock code files...');
+
+  try {
+    console.log('  Deleting: src/calculator.js');
+    await deleteFile('src/calculator.js', 'Cleanup: Remove test code file');
+    console.log('  Deleted 1 mock code file(s)');
+  } catch (error: any) {
+    if (error.status === 404) {
+      console.log('  No mock code files found');
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
  * Main cleanup function
  */
 async function cleanup(): Promise<void> {
@@ -128,6 +147,7 @@ async function cleanup(): Promise<void> {
     await deleteAllBranches();
     await deleteWorkflowFiles();
     await deleteCommandFiles();
+    await deleteMockCodeFiles();
 
     console.log('\n Cleanup completed successfully!');
   } catch (error) {
