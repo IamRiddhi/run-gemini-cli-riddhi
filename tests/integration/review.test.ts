@@ -80,7 +80,7 @@ describe('gemini-review integration test', () => {
 
       console.log('Adding multiply function to calculator.js...');
 
-      const existingCode = await getFileContent('src/calculator.js', branchName);
+      const existingCode = await getFileContent('src/calculator.js', 'main');
 
       if (existingCode.includes('function multiply')) {
         console.log('  Multiply function already exists, skipping...');
