@@ -296,6 +296,8 @@ runs:
         echo "GITHUB_TOKEN=${GITHUB_TOKEN:+<SET>}${GITHUB_TOKEN:-<NOT SET>}"
         echo "=== DEBUG: All env vars containing REPO or PULL ==="
         env | grep -i -E "REPO|PULL" || echo "No matching env vars found"
+        echo "=== DEBUG: Testing if Node.js can see the env vars ==="
+        node -e "console.log('Node sees REPOSITORY:', process.env.REPOSITORY || '<NOT SET>'); console.log('Node sees PULL_REQUEST_NUMBER:', process.env.PULL_REQUEST_NUMBER || '<NOT SET>');"
         echo "=== END DEBUG ==="
 
         # Run Gemini CLI with the provided prompt, using JSON output format
