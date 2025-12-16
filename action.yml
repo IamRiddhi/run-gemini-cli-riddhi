@@ -289,6 +289,15 @@ runs:
         # Keep track of whether we've failed
         FAILED=false
 
+        # DEBUG: Print env vars to verify they're set in this shell
+        echo "=== DEBUG: Checking env vars in bash before running gemini ==="
+        echo "REPOSITORY=${REPOSITORY:-<NOT SET>}"
+        echo "PULL_REQUEST_NUMBER=${PULL_REQUEST_NUMBER:-<NOT SET>}"
+        echo "GITHUB_TOKEN=${GITHUB_TOKEN:+<SET>}${GITHUB_TOKEN:-<NOT SET>}"
+        echo "=== DEBUG: All env vars containing REPO or PULL ==="
+        env | grep -i -E "REPO|PULL" || echo "No matching env vars found"
+        echo "=== END DEBUG ==="
+
         # Run Gemini CLI with the provided prompt, using JSON output format
         # We capture stdout (JSON) to TEMP_STDOUT and stderr to TEMP_STDERR
         if [[ "${GEMINI_DEBUG}" = true ]]; then
