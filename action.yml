@@ -289,10 +289,6 @@ runs:
         # Keep track of whether we've failed
         FAILED=false
 
-        echo "${REPOSITORY:-}" > /tmp/gemini_repository.txt
-        echo "${PULL_REQUEST_NUMBER:-}" > /tmp/gemini_pr_number.txt
-        echo "${ADDITIONAL_CONTEXT:-}" > /tmp/gemini_additional_context.txt
-
         # Run Gemini CLI with the provided prompt, using JSON output format
         # We capture stdout (JSON) to TEMP_STDOUT and stderr to TEMP_STDERR
         if [[ "${GEMINI_DEBUG}" = true ]]; then
@@ -331,13 +327,8 @@ runs:
         if jq -e . "${TEMP_STDERR}" >/dev/null 2>&1; then
            ERROR_JSON=$(jq -c '.error // empty' "${TEMP_STDERR}")
         fi
-        if ! jq -e . "${TEMP_STDOUT}" >/dev/null 2>&1; then
+        if ! { jq -e . "${TEMP_STDERR}" >/dev/null 2>&1 && jq -e . "${TEMP_STDOUT}" >/dev/null 2>&1; }; then
           echo "::warning::Gemini CLI output was not valid JSON"
-          # If we failed to parse JSON and the command didn't fail, this is likely a silent failure (e.g. resource limit)
-          if [[ "${FAILED}" == "false" ]]; then
-             echo "::error title=Gemini CLI execution failed::Gemini CLI produced invalid or empty JSON output, which usually indicates a silent failure."
-             FAILED=true
-          fi
         fi
 
 
